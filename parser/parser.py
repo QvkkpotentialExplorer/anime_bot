@@ -1,5 +1,6 @@
 import asyncio
 import json
+import re
 
 import aiofile
 import aiohttp
@@ -74,6 +75,7 @@ async def final_add(session)-> dict:
             html = await resp.text()
             soup = BeautifulSoup(html, 'lxml')
             dict_of_anime[anime_name] = [url[0], (soup.find_all('dd', class_='col-6 col-sm-8 mb-1')[1].text)]
+
     return dict_of_anime
 
 
@@ -83,12 +85,12 @@ async def find_new_series(episodes: dict):
     :param episodes (наш словарик dict_of_anime):
     :return:
     '''
-    async with aiofile.async_open(file_specifier='data_of_series.json', mode='r', encoding='utf-8') as file:
+    async with aiofile.async_open(file_specifier='parser\data_of_series.json', mode='r', encoding='utf-8') as file:
         series_number = {}
         new_series = {}
         for anime_name, episode_number in json.loads(await file.read()).items():
             series_number[anime_name] = episode_number
-    print(f'series_number 91 : {series_number}')
+    print(f'series_number : {series_number}')
     for anime_name, episode_number in episodes.items():
         # если в json-ке нет определенного аниме , то мы добавляем его в словарик json-ки series_number
         if series_number.get(anime_name) == None:
@@ -96,7 +98,13 @@ async def find_new_series(episodes: dict):
         if series_number.get(anime_name)[0] == None:
             print(f'{anime_name} перестало выходить в онгоинге')
         else:
-            if int(episode_number[1].split(' / ')[0]) > series_number.get(anime_name)[0]:
+            if re.search('[а-яА-Я]', episode_number[1]):
+                episode_number[1] = "0 / 0"
+                episode_number.append("Nothing")
+
+
+
+            elif int(episode_number[1].split(' / ')[0]) > series_number.get(anime_name)[0]:
                 print(f'{anime_name}: вышла новая серия номер {int(episode_number[1].split(" / ")[0])}')
                 episode_number.append('New')
             else:
@@ -110,7 +118,7 @@ async def write_file(now_dict):
     for anime_name, episode_number in now_dict.items():
         if '/' in episode_number[1]:
             json_dict[anime_name] = (int(episode_number[1].split(' / ')[0]),episode_number[2])
-    with open('data_of_series.json', 'w', encoding='utf-8') as afp:
+    with open('parser\data_of_series.json', 'w', encoding='utf-8') as afp:
         json.dump(json_dict, afp)
 
 
@@ -140,6 +148,7 @@ async def max_page():
                 r = await resp.json()
                 if r['endPage']:
                     break
+    print(page)
     return page
 
 
@@ -149,10 +158,15 @@ async def main():
     mx_pg = await asyncio.create_task(max_page())
 
     async with aiohttp.ClientSession() as session:
-        for now_page in range(1, mx_pg):
+        if mx_pg == 1:
             tasks.append(asyncio.create_task(
-                add_all_animes(url=f"{URL}?sort=createdAt&direction=desc&type=animes&page={now_page}",
+                add_all_animes(url=f"{URL}?sort=createdAt&direction=desc&type=animes&page=1",
                                session=session))),
+        else:
+            for now_page in range(1, mx_pg):
+                tasks.append(asyncio.create_task(
+                    add_all_animes(url=f"{URL}?sort=createdAt&direction=desc&type=animes&page={now_page}",
+                                   session=session))),
         for task in tasks:
             await task
         #Добавляем в наш список dict_of_anime номер последней серии
@@ -178,5 +192,4 @@ def get_anime(url,dict_of_anime):
         if str(url1[0]) == str(url) :
             print(anime_name)
             break
-
 get_anime(url = 'https://animego.org/anime/zvezdnoe-ditya-2307',dict_of_anime=dict_of_anime)

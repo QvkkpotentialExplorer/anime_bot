@@ -3,8 +3,8 @@ version: "3.1"
 services:
   parser:
     build:
-      context: .
-      dockerfile: ./Dockerfile
+      context: ..
+      dockerfile: Dockerfile
     container_name: parser_cont
     restart: always
     volumes:
