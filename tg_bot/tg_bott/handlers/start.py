@@ -7,7 +7,7 @@ kb.add(KeyboardButton(text='Онгоинг'), KeyboardButton(text='Анонс'))
 
 async def bot_start(message: types.Message):
     await message.answer(f'Привет друг!\nЯ - аниме-бот , который поможет тебе не забыть о том , что вышла новая серия твоего любимого тайтла:)', reply_markup=kb)
-    await message.answer(f'Напиши назвния нужного аниме ')
+    await message.answer(f'---------')
 
 
 
