@@ -1,7 +1,7 @@
 import asyncio
 import json
 import re
-
+import time
 import aiofile
 import aiohttp
 from aiohttp import ClientSession
@@ -185,7 +185,10 @@ async def main():
         await file_task
 
 
+start_time = time.time()
 asyncio.run(main())
+end_time = time.time()
+print(end_time-start_time)
 print(dict_of_anime)
 print("--------------------")
 

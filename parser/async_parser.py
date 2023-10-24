@@ -1,10 +1,12 @@
 import asyncio
 import json
 import re
-
+import time
 import aiofile
 import aiohttp
 from bs4 import BeautifulSoup
+
+from typing import IO
 
 URL = 'https://animego.org/anime/filter/status-is-ongoing/apply'
 COOKIES = {
@@ -106,16 +108,22 @@ class AParser:
         :param url: ссылка на одну из страничек с отдельно взятым тайтлом:
         :param anime_name: ключ в dict_of_anime
         '''
-        async with self.session.get(url) as resp:
-            if resp.status != 404:
-                print(anime_name, url)
-                html = await resp.text()
-                self.dict_of_anime[anime_name] = {
-                    "url": url,
-                    "status": BeautifulSoup(html, 'lxml').find_all('dd', class_='col-6 col-sm-8 mb-1')[1].text
-                }
-            else:
-                self.dict_of_anime[anime_name] = {"url": url, "status": 404}
+        while True:
+            async with self.session.get(url) as resp:
+                if resp.status != 404:
+                    html = await resp.text()
+                    if len(BeautifulSoup(html, 'lxml').find_all('dd', class_='col-6 col-sm-8 mb-1')) < 2:
+                        await asyncio.sleep(1)
+                        continue
+                    print(anime_name, url)
+                    self.dict_of_anime[anime_name] = {
+                        "url": url,
+                        "status": BeautifulSoup(html, 'lxml').find_all('dd', class_='col-6 col-sm-8 mb-1')[1].text
+                    }
+                    return
+                else:
+                    self.dict_of_anime[anime_name] = {"url": url, "status": "404"}
+                    return
 
     async def gather_data(self):
         '''
@@ -135,49 +143,59 @@ class AParser:
         async with aiofile.async_open(file_specifier='data_of_series.json', mode='r', encoding='utf-8') as file:
             series_number = json.loads(await file.read())
         print(f'series_number : {series_number}')
-        for anime_name, episode_number in self.dict_of_anime.items():
+        for anime_name in self.dict_of_anime:
             # если в json-ке нет определенного аниме , то мы добавляем его в словарик json-ки series_number
-            print(episode_number[1])
+
+            status = self.dict_of_anime[anime_name]['status']
+
             if series_number.get(anime_name) is None:
-                series_number[anime_name["status"]] = [0]
-            if series_number.get(anime_name)[0] is None:
+                series_number[anime_name] = {"status": 0, 'status_new' : 'Nothing'}
+            if series_number.get(anime_name) is None:
                 print(f'{anime_name} перестало выходить в онгоинге')
             else:
-                if episode_number[1] == 404:
-                    episode_number[1] = "0 / 0"
-                    episode_number.append("Nothing")
+                if status == 404:
+                    self.dict_of_anime[anime_name]["status"] = ["0 / 0"]
+                    self.dict_of_anime[anime_name]["status_new"] = ["Nothing"]
 
-                elif re.search('[а-яА-Я]', episode_number[1]):
+                elif re.search('[а-яА-Я]', status):
 
-                    episode_number[1] = "0 / 0"
-                    episode_number.append("Nothing")
+                    self.dict_of_anime[anime_name]["status"] = ["0 / 0"]
+                    self.dict_of_anime[anime_name]["status_new"] = ["Nothing"]
 
 
 
-                elif int(episode_number[1].split(' / ')[0]) > series_number.get(anime_name)[0]:
-                    print(f'{anime_name}: вышла новая серия номер {int(episode_number[1].split(" / ")[0])}')
-                    episode_number.append('New')
+                elif int(status.split(' / ')[0]) > series_number[anime_name]['status']:
+                    print(f'{anime_name}: вышла новая серия номер {int(status.split(" / ")[0])}')
+                    self.dict_of_anime[anime_name]["status_new"] = ["New"]
                 else:
                     print(f'{anime_name} не вышло новой серии')
-                    episode_number.append('Nothing')
+                    self.dict_of_anime[anime_name]["status_new"] = ["Nothing"]
         return self.dict_of_anime
 
-    async def write_file(self, now_dict):
+    async def write_file(self ):
         json_dict = {}
-        for anime_name, episode_number in now_dict.items():
+        for anime_name, episode_number in self.dict_of_anime.items():
             print(anime_name, "::::", episode_number)
             if '/' in episode_number["status"]:
-                json_dict[anime_name] = {"last_episode": int(episode_number["status"].split(' / ')[0]),
-                                         "status": episode_number[2]}
-        async with open('data_of_series.json', 'w', encoding='utf-8') as afp:
-            json.dump(json_dict, afp)
+                json_dict[anime_name] = {"href": episode_number['url'],
+                                         "status": int(episode_number["status"].split(' / ')[0]),
+                                         "status_new": episode_number['status_new']}
+        async with aiofile.async_open('data_of_series.json', mode='w', encoding='utf-8') as afp:
+            data = json.dumps(json_dict, ensure_ascii=False)
+            print(data)
+            await afp.write(data)
 
 
 async def main():
     async with aiohttp.ClientSession() as session:
         parser = AParser(url=URL, cookies=COOKIES, headers=HEADERS, session=session, params=PARAMS)
         await parser.gather_data()
+
         print(parser.dict_of_anime)
+        await parser.find_new_series()
+        await parser.write_file()
+        # await parser.write_file(now_dict=parser.dict_of_anime)
+
         # d = await parser.g()
         # # print(parser.dict_of_anime)
         # await parser.write_file(now_dict=d)
@@ -185,4 +203,7 @@ async def main():
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     asyncio.run(main())
+    end_time = time.time()
+    print(end_time-start_time)
