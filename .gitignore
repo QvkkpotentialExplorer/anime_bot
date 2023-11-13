@@ -1,4 +1,4 @@
 .env
 /venv/
 .idea
-./tg_bot/bot.db
+/tg_bot/bot.db
