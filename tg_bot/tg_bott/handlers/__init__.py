@@ -1,1 +1,1 @@
-from . import start, help, ongoing
+from . import start, help, ongoing, add_anime

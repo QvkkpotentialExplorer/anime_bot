@@ -12,45 +12,100 @@ Executing :
 class DataBase():
     def __init__(self,path_to_db = './bot.db'):
         self.path_to_db = path_to_db
+        self.connection = self.get_connection()
 
-    @property
-    def connection(self):
+
+    def get_connection(self):
          return sqlite3.connect(self.path_to_db)
 
-    def execute(self, sql : str, parameters = None, fetchone = False, fetchall = False,commit = False ):
-        if not parameters:
-            parameters=()
+    def execute(self, sql : str, params = None, fetchone = False, fetchall = False,commit = False ):
+        if not params:
+            params=()
         conn = self.connection
-        parameters=parameters
+        parameters=params
         cursor = conn.cursor()
         conn.set_trace_callback(logger)
         data = None
-        cursor.execute(sql,parameters)
+        cursor.execute(sql,params)
 
         if commit:
             conn.commit()
+            conn.close()
+            self.connection = self.get_connection()
         if fetchone:
             data = cursor.fetchone()
         if fetchall:
             data =  cursor.fetchall()
 
-        conn.close()
+
+
         return data
 
     def create_table(self):
-        sql_cmd = """
-        CREATE TABLE IF NOT EXISTS Users(
+        sql_cmd = ["""
+        CREATE TABLE IF NOT EXISTS users(
         id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
         chat_id INTEGER NOT NULL
         );
+        """,
         """
-        self.execute(sql = sql_cmd,commit=True)
+        CREATE TABLE IF NOT EXISTS anime(
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        href TEXT,
+        anime_name TEXT,
+        episodes TEXT,
+        flag BOOL
+        );
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS users_anime(
+        id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        anime_id INTEGER,
+        FOREIGN KEY ('user_id') REFERENCES users('id'),
+        FOREIGN KEY ('anime_id') REFERENCES anime('id') 
+        );
+        """]
+        for sql in sql_cmd:
+            self.execute(sql = sql,commit=True)
 
-    def add(self,chat_id:int):
-        sql = """SELECT 1 FROM Users where id == {key}""".format(key = chat_id)
-        if not self.execute(sql=sql) :
-            sql_cmd = """
-            INSERT INTO Users(chat_id) VALUES({chat_id});
-            """.format(chat_id=chat_id)
+    def add_user(self,chat_id:int):
+        sql = """SELECT * FROM users where chat_id = ?"""
 
-            self.execute(sql = sql_cmd,commit = True)
+        if not self.execute(sql=sql,fetchone=True,params = (chat_id,)) :
+            print(self.execute(sql=sql,fetchone=True,params = (chat_id,)))
+            user_id = self.execute(sql="""
+                INSERT INTO users(chat_id) VALUES({?}) RETURNING id ;
+                """, params=(chat_id,), fetchone=True)[0]
+            return user_id
+        else:
+            user_id = self.execute(sql = """SELECT id FROM users where chat_id = ?""",fetchone=True,params = (chat_id,))[0]
+            return user_id
+
+
+        # else:
+        #
+    def add_anime(self,href : str):
+        if not self.execute(sql = """SELECT * FROM anime where href = ? """,fetchone=True,params=(href,)):
+            anime_id = self.execute(sql="""INSERT INTO anime(href) VALUES(?) RETURNING id ;
+                        """, params=(href,),fetchone=True)[0]
+
+            return anime_id
+        else :
+            anime_id = self.execute(sql=""""SELECT id FROM anime where href = ?""", fetchone=True, params=(href,))[0]
+            return anime_id
+
+    def add_users_anime(self,user_id,anime_id):
+        if not self.execute(sql = "SELECT * FROM users_anime where user_id = ? and anime_id = ? ",fetchone=True,params=(user_id,anime_id,)):
+            self.execute(sql="""INSERT INTO users_anime(user_id,anime_id) VALUES(?,?) ;
+                        """, params=(user_id,anime_id),commit = True)
+
+    def get_info(self,chat_id):
+        if not self.execute(sql = "SELECT * FROM ")
+
+
+
+
+
+
+

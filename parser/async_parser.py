@@ -113,7 +113,7 @@ class AParser:
                 if resp.status != 404:
                     html = await resp.text()
                     if len(BeautifulSoup(html, 'lxml').find_all('dd', class_='col-6 col-sm-8 mb-1')) < 2:
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(1) # Если сервер создает задержку
                         continue
                     print(anime_name, url)
                     self.dict_of_anime[anime_name] = {
@@ -157,7 +157,7 @@ class AParser:
                     self.dict_of_anime[anime_name]["status"] = ["0 / 0"]
                     self.dict_of_anime[anime_name]["status_new"] = ["Nothing"]
 
-                elif re.search('[а-яА-Я]', status):
+                elif re.search('[а-яА-Я]', status):#Если в искомом теге нету количества серий
 
                     self.dict_of_anime[anime_name]["status"] = ["0 / 0"]
                     self.dict_of_anime[anime_name]["status_new"] = ["Nothing"]
@@ -176,7 +176,7 @@ class AParser:
         json_dict = {}
         for anime_name, episode_number in self.dict_of_anime.items():
             print(anime_name, "::::", episode_number)
-            if '/' in episode_number["status"]:
+            if '/' in episode_number["status"]: #Если в теге было количество серий то есть (4/6)
                 json_dict[anime_name] = {"href": episode_number['url'],
                                          "status": int(episode_number["status"].split(' / ')[0]),
                                          "status_new": episode_number['status_new']}
@@ -184,6 +184,7 @@ class AParser:
             data = json.dumps(json_dict, ensure_ascii=False)
             print(data)
             await afp.write(data)
+
 
 
 async def main():
@@ -207,3 +208,4 @@ if __name__ == "__main__":
     asyncio.run(main())
     end_time = time.time()
     print(end_time-start_time)
+

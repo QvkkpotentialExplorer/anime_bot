@@ -8,11 +8,11 @@ kb.add(KeyboardButton(text='Онгоинг'), KeyboardButton(text='Анонс'))
 async def bot_start(message: types.Message):
     await message.answer(f'Привет друг!\nЯ - аниме-бот , который поможет тебе не забыть о том , что вышла новая серия твоего любимого тайтла:)', reply_markup=kb)
     await message.answer(f'---------')
-    await message.answer()
+    await message.answer(f'Чтобы добавить аниме в отслеживаемоемое используй комманду /add_anime')
 
 
 
 
 def register_start(dp: Dispatcher):
-    dp.register_message_handler(bot_start,commands=['start'])
+    dp.register_message_handler(bot_start,commands=['start'],state = '*')
 
