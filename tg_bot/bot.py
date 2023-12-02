@@ -1,10 +1,12 @@
 import asyncio
 import logging
 
+import aiohttp
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 
+from parser.new_parser import AParser
 from tg_bot.tg_bott.db.bot_db import DataBase
 from tg_bot.tg_bott.handlers.add_anime import register_add_anime
 from tg_bott.config import load_config
@@ -12,19 +14,21 @@ from tg_bott.config import load_config
 # from tg_bott.handlers.echo import register_echo
 from tg_bott.handlers.help import register_help_commands
 
-
 from tg_bott.handlers.start import register_start
 
 logger = logging.getLogger(__name__)
 db = DataBase()
 
+
 def register_middleware(dp):
-    #dp.setup_middleware(...)
+    # dp.setup_middleware(...)
     pass
 
 
 def register_filters(dp):
-   pass
+    pass
+
+
 def register_hendler(dp):
     register_start(dp)
 
@@ -34,13 +38,8 @@ def register_hendler(dp):
     # register_ongoing(dp)
 
 
-
-
-
-
-
 async def main():
-    db.create_table()
+    await db.create_table()
     logging.basicConfig(level=logging.INFO,
                         format=u'%(filename)s:%(lineno)d #%(levelname)-8s [%(asctime)s] - %(name)s - %(message)s')
     config = load_config(path='.env')
@@ -54,7 +53,9 @@ async def main():
     register_filters(dp)
     register_hendler(dp)
     try:
+
         await dp.start_polling()
+
     finally:
         await dp.storage.close()
         await dp.storage.wait_closed()
@@ -64,5 +65,5 @@ async def main():
 if __name__ == '__main__':
     try:
         asyncio.run(main=main())
-    except(KeyboardInterrupt, SystemExit,RuntimeError):
+    except(KeyboardInterrupt, SystemExit, RuntimeError):
         logger.error('Все кончается')
