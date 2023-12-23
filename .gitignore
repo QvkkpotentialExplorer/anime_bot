@@ -160,4 +160,5 @@ cython_debug/
 .idea
 /tg_bot/bot.db
 /.idea/
-/venv/
+
+/.venv/
