@@ -129,7 +129,6 @@ class DataBase:
     async def write_on_db(self, anime_name, episodes, flag):
         await self.execute(sql=""" UPDATE anime(episodes,flag) VALUES(?) WHERE anime_name = (?) """,
                            params=(episodes, flag, anime_name,), commit=True)
-
     async def for_sounder(self):
         lst_of_users = await self.execute(sql=""" SELECT * FROM users  """, fetchall=True)
         lst_of_animes = await self.execute(sql=""" SELECT * FROM anime WHERE flag = (?)""", params=(True,),

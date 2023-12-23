@@ -56,8 +56,11 @@ class AParser:
 
             if not self.dict_of_anime.get(anime_name):  # Если аниме не прошло проверку self.check()
                 pass
+            elif (anime[4] == True):#Меняем flag True на False после предыдущего запуска парсера
+                await self.db.write_on_db(episodes=self.dict_of_anime[1], anime_name=anime_name, flag=False)
 
-            elif int(anime[3].split('/')[0]) < int(self.dict_of_anime[anime_name][1].split('/')[0]):
+            elif int(anime[3].split('/')[0]) < int(self.dict_of_anime[anime_name][1].split('/')[
+                                                       0]):  # Если количество серий , спаршеных с сайта больше количества серий,взятых с бд
                 await self.db.write_on_db(episodes=self.dict_of_anime[1], anime_name=anime_name, flag=True)
                 print(f'{anime_name} flag = True')
             else:
