@@ -1,4 +1,2 @@
-.env
-/venv/
-.idea
-/tg_bot/bot.db
+/venv
+/tg_bot/tg_bott/db/bot.db
