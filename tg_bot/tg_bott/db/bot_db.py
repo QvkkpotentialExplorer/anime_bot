@@ -123,13 +123,14 @@ class DataBase:
 
     async def select_anime(self):
         animes = await self.execute(sql="""SELECT * FROM anime;""", fetchall=True)
-
+        #[id,href,anime_name,episodes,flag]
         return animes
 
     async def write_on_db(self, anime_name, episodes, flag):
-        await self.execute(sql=""" UPDATE anime(episodes,flag) VALUES(?) WHERE anime_name = (?) """,
+        await self.execute(sql= """ UPDATE anime SET episodes = ?, flag = ?   WHERE anime_name = ? """,
                            params=(episodes, flag, anime_name,), commit=True)
-    async def for_sounder(self):
+        print('s')
+    async def for_sounder(self):#Формирует словарь sound для sounder
         lst_of_users = await self.execute(sql=""" SELECT * FROM users  """, fetchall=True)
         lst_of_animes = await self.execute(sql=""" SELECT * FROM anime WHERE flag = (?)""", params=(True,),
                                            fetchall=True)
@@ -140,14 +141,22 @@ class DataBase:
         else:
 
             dict_of_users = {user[0]: user[1] for user in lst_of_users}
-            dict_of_animes = {anime[0]: {'href': anime[1], 'anime_name': anime[2], 'episodes': anime[3]} for anime in
+            dict_of_animes = {anime[0]: {'href': anime[1], 'anime_name': anime[2], 'episodes': anime[3].split('/')[0]} for anime in
                               lst_of_animes if anime[4] == True}  # Преобразуем список кортежей в словарь если
+            print(dict_of_animes)
             dict_of_users_anime = {user[0]: user[1] for user in lst_of_users_anime}
             sound = {}
             print(dict_of_users_anime)
             for key, value in dict_of_users_anime.items():
-                sound[dict_of_users[key]] = [dict_of_animes[value]]
-        return sound
+                print(key,value)
+                sound[dict_of_users[value]] = dict_of_animes[key]
+        print(sound)
+        return sound #{chat_id : {href: href,anime_name : anime_name,episodes : episodes}
+
+    async def delete_anime(self,anime_name):
+        anime_id = await self.execute(sql=""" DELETE FROM anime WHERE anime_name = ?  RETURNING id """,params = (anime_name,), commit=True,fetchone=True)
+        await self.execute(sql="DELETE FROM users_anime where anime_id = ?;",
+                           fetchone=True, params=(anime_id[0],), commit=True,fetchall=True)
 
 
 

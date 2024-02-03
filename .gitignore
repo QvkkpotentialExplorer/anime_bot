@@ -2,4 +2,5 @@
 /venv/
 .idea
 /tg_bot/bot.db
+__pycache__
 

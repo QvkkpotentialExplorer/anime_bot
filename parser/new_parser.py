@@ -1,6 +1,7 @@
 import asyncio
 
 import aiohttp
+from aiogram import Dispatcher
 from bs4 import BeautifulSoup
 
 from tg_bot.tg_bott.db.bot_db import DataBase
@@ -50,18 +51,24 @@ class AParser:
             await self.get_page(anime[1])
 
     async def find_new_series(self, lst_of_anime):
-
+        print('-------find_new_series-----------')
         for anime in lst_of_anime:
             anime_name = anime[2]
 
             if not self.dict_of_anime.get(anime_name):  # Если аниме не прошло проверку self.check()
                 pass
-            elif (anime[4] == True):#Меняем flag True на False после предыдущего запуска парсера
-                await self.db.write_on_db(episodes=self.dict_of_anime[1], anime_name=anime_name, flag=False)
+
+            elif anime[4] == True:  # Меняем flag True на False после предыдущего запуска парсера
+                if int(anime[3].split('/')[1]) == int(self.dict_of_anime[anime_name][1].split('/')[
+                                                          0]):  # Если вышла последняя серия аниме и пользователям пришло оповещение
+                    await self.db.delete_anime(anime_name=anime_name)
+                else:
+                    await self.db.write_on_db(episodes=self.dict_of_anime[anime_name][1], anime_name=anime_name, flag=False)
+
 
             elif int(anime[3].split('/')[0]) < int(self.dict_of_anime[anime_name][1].split('/')[
                                                        0]):  # Если количество серий , спаршеных с сайта больше количества серий,взятых с бд
-                await self.db.write_on_db(episodes=self.dict_of_anime[1], anime_name=anime_name, flag=True)
+                await self.db.write_on_db(episodes=self.dict_of_anime[anime_name][1], anime_name=anime_name, flag=True)
                 print(f'{anime_name} flag = True')
             else:
                 pass

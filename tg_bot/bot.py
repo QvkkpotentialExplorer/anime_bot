@@ -51,8 +51,8 @@ async def sounder(bot: Bot):
         await parser.find_new_series(lst_of_anime=lst_of_anime)  # Ищет новые серии и сипользует функц db.wrote()
     users_for_message = await db.for_sounder()
 
-    for users, anime in users_for_message:
-        await bot.send_message(chat_id=users, text=f'{anime[1]} вышла новая серия {anime[2]} \n {[anime[0]]}')
+    for users, anime in users_for_message.items():
+        await bot.send_message(chat_id=users, text=f'{anime["anime_name"]} вышла новая серия {anime["episodes"]} \n {anime["href"]}')
 async def main():
     await db.create_table()
 
@@ -72,7 +72,7 @@ async def main():
     register_filters(dp)
     register_hendler(dp)
 
-    scheduler.add_job(sounder, 'interval', seconds=15, args=(bot,))
+    scheduler.add_job(sounder, 'interval', minutes = 2, args=(bot,))
 
     try:
         scheduler.start()
