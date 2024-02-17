@@ -35,20 +35,21 @@ async def add(message: types.Message, state: FSMContext):
         print(f'{message.chat.id}  :  {user_data["href"]}')
         async with aiohttp.ClientSession() as session:
             parser = AParser(session=session)
-            if await parser.check(user_data["href"]):
-                data_of_anime = await parser.get_page(url=message.text)
+            if await parser.check(user_data["href"],type='anime'):
+                data_of_anime = await parser.get_page(url=message.text,type='anime')
                 check = await db.add_users_anime(await db.add_user(chat_id=message.chat.id),
-                                                 await db.add_anime(href=message.text,anime_name= data_of_anime[0],episodes=data_of_anime[1]))
+                                                 await db.add_title(href=message.text, name= data_of_anime[0],episodes=data_of_anime[1],type= 'anime'))
                 if check:
                     await message.reply("Аниме добавлено в отслеживаемые")
                 else:
                     await message.reply('Вы уже добавили это аниме')
                 await state.finish()
             else:
-                await message.reply('Это аниме не идет в онгинге')
+                await message.reply('Это аниме не идет в онгоинге')
 
     else:
         await message.reply('Хм, это непохоже на подходящую ссылку')
+        await state.finish()
 
 
 def register_add_anime(dp: Dispatcher):

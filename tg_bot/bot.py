@@ -10,6 +10,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from parser.new_parser import AParser
 from tg_bot.tg_bott.db.bot_db import DataBase
 from tg_bot.tg_bott.handlers.add_anime import register_add_anime
+from tg_bot.tg_bott.handlers.add_series import register_add_series
 from tg_bot.tg_bott.handlers.delete_anime import register_delete_anime
 from tg_bot.tg_bott.handlers.view_tracked import register_view_tracked
 from tg_bot.tg_bott.middleware.scheduler import SchedulerMiddleware
@@ -31,6 +32,7 @@ def register_filters(dp):
 
 
 def register_hendler(dp):
+    register_add_series(dp)
     register_delete_anime(dp)
     register_start(dp)
 
@@ -48,7 +50,7 @@ async def sounder(bot: Bot):
         parser = AParser(session=session)
         lst_of_anime = await db.select_anime()
         await parser.gather_data(lst_anime=lst_of_anime)  # Собираем новые данные об аниме
-        await parser.find_new_series(lst_of_anime=lst_of_anime)  # Ищет новые серии и сипользует функц db.wrote()
+        await parser.find_new_series(lst_of_anime=lst_of_anime,type='anime')  # Ищет новые серии и сипользует функц db.wrote()
     users_for_message = await db.for_sounder()
 
     for users, anime in users_for_message.items():
@@ -72,7 +74,7 @@ async def main():
     register_filters(dp)
     register_hendler(dp)
 
-    scheduler.add_job(sounder, 'interval', minutes = 2, args=(bot,))
+    scheduler.add_job(sounder, 'interval', seconds = 30, args=(bot,))
 
     try:
         scheduler.start()

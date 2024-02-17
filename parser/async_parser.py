@@ -130,11 +130,11 @@ class AParser:
             Сначало заполняет список tasks1 тасками с выполнением def add_all_animes .
             Следом заполняет список task2 тасками с выполнением def get_page_data
         '''
-        tasks1 = []
+        anime_tasks1 = []
         tasks2 = []
         for url in await self.generate_urls():
-            tasks1.append(asyncio.create_task(self.add_all_animes(url=url)))
-        await asyncio.gather(*tasks1)
+            anime_tasks1.append(asyncio.create_task(self.add_all_animes(url=url)))
+        await asyncio.gather(*anime_tasks1)
         for anime_name, url in self.dict_of_anime.items():
             tasks2.append(asyncio.create_task(self.get_page_data(anime_name=anime_name, url=url)))
         await asyncio.gather(*tasks2)
@@ -184,6 +184,7 @@ class AParser:
             data = json.dumps(json_dict, ensure_ascii=False)
             print(data)
             await afp.write(data)
+
 
 
 
