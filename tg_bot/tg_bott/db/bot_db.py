@@ -64,50 +64,53 @@ class DataBase:
                                          params=(chat_id,))
             return user_id[0]
 
-    async def add_title(self, href: str, name: str, episodes: str,type : str):#type - категория , с которой производятся манпиуляции(anime,series)
+    async def add_title(self, href: str, name: str, episodes: str,content_type : str):#content_type - категория , с которой производятся манпиуляции(anime,series)
         res = await self.execute(sql="""SELECT * FROM anime WHERE href = ? """, fetchone=True, params=(href,))
         if not res:
             anime_id = await self.execute(
-                sql=f"""INSERT INTO {type}(href, name, episodes) VALUES(?,?,?) RETURNING id ;""",
+                sql=f"""INSERT INTO {content_type
+                }(href, name, episodes) VALUES(?,?,?) RETURNING id ;""",
                 params=(href, name, episodes),
                 fetchone=True,
                 commit=True
             )
             return anime_id[0]
         else:
-            anime_id = await self.execute(sql=f"""SELECT id FROM {type} WHERE href = ?;""", fetchone=True, params=(href,))
+            anime_id = await self.execute(sql=f"""SELECT id FROM {content_type} WHERE href = ?;""", fetchone=True, params=(href,))
             return anime_id[0]
 
-    async def add_users_anime(self, user_id, anime_id):
-        check = await self.execute(sql="SELECT * FROM users_anime WHERE user_id = ? and anime_id = ?;",
+    async def add_users_title(self, user_id, title_id,content_type):
+        check = await self.execute(sql=f"SELECT * FROM users_{content_type} WHERE user_id = ? and {content_type}_id = ?;",
                                    fetchone=True,
-                                   params=(user_id, anime_id,))
+                                   params=(user_id, title_id,))
         if not check:
-            await self.execute(sql="""INSERT INTO users_anime(user_id, anime_id) VALUES(?, ?);""",
-                               params=(user_id, anime_id,),
+            await self.execute(sql=f"""INSERT INTO users_{content_type}(user_id, {content_type}_id) VALUES(?, ?);""",
+                               params=(user_id, title_id,),
                                commit=True)
             return True
         else:
             return False
 
-    async def select_users_animes(self, chat_id):
+    async def select_users_animes(self, chat_id:str,content_type):
+        print(type(chat_id))
         sql = """SELECT id FROM users where chat_id = ?"""
         print(await self.execute(sql=sql, fetchone=True, params=(chat_id,)))
         if not await self.execute(sql=sql, fetchone=True,
-                                  params=(chat_id,)):  # Проверка на то , что у user есть аниме в users_anime
+                                  params=(chat_id,)):  # Проверка на то , что у user есть тайтл в users_anime
             return False
         else:
             user_id = await self.execute(sql=sql, fetchone=True, params=(chat_id,))
             print(user_id[0])
-            anime_id = await self.execute(sql="SELECT anime_id FROM users_anime WHERE user_id = ?", fetchall=True,
+            titles_id = await self.execute(sql=f"SELECT {content_type}_id FROM users_{content_type} WHERE user_id = ?", fetchall=True,
                                           params=(user_id[0],))  # Достаем из таблички users_anime все anime_id
-            if anime_id:
-                animes_id = [id[0] for id in anime_id]
-                print(animes_id)
+            print(titles_id)
+            if titles_id:
+                title_id = [id[0] for id in titles_id]
+                print(title_id)
                 animes = await self.execute(
-                    sql=f"""SELECT name, href, episodes FROM anime WHERE id in ({'?,' * (len(anime_id) - 1)}?)""",
+                    sql=f"""SELECT name, href, episodes FROM anime WHERE id in ({'?,' * (len(title_id) - 1)}?)""",
                     fetchall=True,
-                    params=(tuple(animes_id) ))# Достаем из таблички anime все аниме , конкретного пользователся
+                    params=(tuple(title_id) ))# Достаем из таблички anime все аниме , конкретного пользователся
                 return animes
             else:
                 return False

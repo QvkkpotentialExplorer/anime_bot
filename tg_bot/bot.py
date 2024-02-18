@@ -50,7 +50,7 @@ async def sounder(bot: Bot):
         parser = AParser(session=session)
         lst_of_anime = await db.select_anime()
         await parser.gather_data(lst_anime=lst_of_anime)  # Собираем новые данные об аниме
-        await parser.find_new_series(lst_of_anime=lst_of_anime,type='anime')  # Ищет новые серии и сипользует функц db.wrote()
+        await parser.find_new_series(lst_of_anime=lst_of_anime,content_type ='anime')  # Ищет новые серии и сипользует функц db.wrote()
     users_for_message = await db.for_sounder()
 
     for users, anime in users_for_message.items():

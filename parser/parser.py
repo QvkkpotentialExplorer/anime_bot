@@ -21,7 +21,7 @@ async def get_serial_data(href):
         print(count_series.find_all('span')[2].text.split())
         print(name_of_series[0].text)
 async def main():
-    await get_serial_data("https://www.film.ru/serials/mese-speyd#soon")
+    await get_serial_data("https://film.ru/serials/csi-vegas")
 
 if __name__ == "__main__":
     asyncio.run(main())
