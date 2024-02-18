@@ -7,20 +7,25 @@ db = DataBase()
 
 
 async def view_tracked(message: types.Message):
-    animes = await db.select_users_animes(chat_id=message.chat.id,content_type='anime')
-    series = await db.select_users_animes(chat_id=message.chat.id,content_type='series')
+    animes = await db.select_users_titles(chat_id=message.chat.id, content_type='anime')
+    series = await db.select_users_titles(chat_id=message.chat.id, content_type='series')
     print(series)
-    print(animes)
+    print(series)
+    kbd = types.InlineKeyboardMarkup(row_width=1)
     if animes:
-        kbd = types.InlineKeyboardMarkup(row_width=1)
         buttons = []
-        for anime_name, href, episodes in animes:
-            buttons.append(types.InlineKeyboardButton(text=f"Аниме {anime_name}\nЭпизоды : {episodes}", url=href))
+        for name, href, episodes in animes:
+            buttons.append(types.InlineKeyboardButton(text=f"Аниме {name}\nЭпизоды : {episodes}", url=href))
         kbd.add(*buttons)
-        await message.answer("Вот ваши анимешки , добавленные в отслеживаемое", reply_markup=kbd)
-
+    if series:
+        for name, href, episodes in series:
+            buttons = []
+            buttons.append(types.InlineKeyboardButton(text=f" Сериал {name}\nЭпизоды : {episodes}", url=href))
+            kbd.add(*buttons)
+    if kbd == None:
+        await message.answer("Вы ещё не добавили не одного сериала или аниме в отслеживаемые")
     else:
-        await message.answer("Вы ещё не добавили не одного аниме в отслеживаемые")
+        await message.answer("Вот ваши отслеживаемые аниме и сериалы", reply_markup=kbd)
 
 
 def register_view_tracked(dp: Dispatcher):

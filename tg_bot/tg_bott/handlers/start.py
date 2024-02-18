@@ -16,6 +16,7 @@ async def bot_start(message: types.Message):
         types.InlineKeyboardButton(text="Посмотреть список отслеживаемых онгоингов", callback_data="view_tracked"),
         types.InlineKeyboardButton(text="Добавить аниме в отслеживаемое", callback_data="add_anime"),
         types.InlineKeyboardButton(text="Удалить аниме из отслеживаемого", callback_data="delete_anime")
+        types.InlineKeyboardButton(text="Добавить сериал в отслеживаемое",callback_data="add_series")
     ]
     kbd = types.InlineKeyboardMarkup(row_width=1)
     kbd.add(*buttons)

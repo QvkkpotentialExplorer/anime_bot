@@ -12,7 +12,7 @@ class GetCallback(StatesGroup):
 
 
 async def delete_anime(message: types.Message, state: FSMContext):
-    animes = await db.select_users_animes(chat_id=message.chat.id)
+    animes = await db.select_users_titles(chat_id=message.chat.id,content_type="anime")
     if animes:
 
         buttons = []

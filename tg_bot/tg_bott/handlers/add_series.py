@@ -13,7 +13,7 @@ dict_of_users = {}
 db = DataBase()
 
 
-class GetHref(StatesGroup):
+class GetSeriesHref(StatesGroup):
     waiting_for_href = State()
     # waiting_for_status = []
 
@@ -24,11 +24,12 @@ async def add_series(message: types.Message, state: FSMContext):
         f'Чтобы добавить сериал в отслеживаемые, тебе нужно зайти на этот сайтик: https://www.film.ru/serials/ и найти нужный сериал\n'
         f'Далее скидываешь ссылку мне :)')
     await message.answer(f'Скидывай ссылку')
-    await state.set_state(GetHref.waiting_for_href.state)
+    await state.set_state(GetSeriesHref.waiting_for_href.state)
 
 
 async def add(message: types.Message, state: FSMContext):
     if message.text.startswith('https://www.film.ru/serials/'):
+        print('blyat')
         content_type = 'series'
         await state.update_data(href=message.text)
         user_data = await state.get_data()
@@ -38,7 +39,7 @@ async def add(message: types.Message, state: FSMContext):
             if await parser.check(user_data["href"],content_type=content_type):
                 data_of_series = await parser.get_page(url=message.text,content_type="series")
                 check = await db.add_users_title(await db.add_user(chat_id=message.chat.id),
-                                                 await db.add_title(href=message.text, name= data_of_series[0],episodes=data_of_series[1],content_type= 'series'))
+                                                 await db.add_title(href=message.text, name= data_of_series[0],episodes=data_of_series[1],content_type= content_type),content_type= content_type)
                 if check:
                     await message.reply("Сериал добавлен в отслеживаемые")
                 else:
@@ -54,4 +55,4 @@ async def add(message: types.Message, state: FSMContext):
 
 def register_add_series(dp: Dispatcher):
     dp.register_message_handler(callback=add_series, commands=['add_series'], state="*")
-    dp.register_message_handler(callback=add, state=GetHref.waiting_for_href)
+    dp.register_message_handler(callback=add, state=GetSeriesHref.waiting_for_href)
