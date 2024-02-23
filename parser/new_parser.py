@@ -27,12 +27,13 @@ class AParser:
             html = await resp.text()
             html = BeautifulSoup(html, 'lxml')
             if content_type == "anime":
+                print("аниме")
                 try:
                     status_ongoing = html.find_all('dd', class_='col-6 col-sm-8 mb-1')[2].text
-
+                    return True
                 except:
-                    status_ongoing = "NO"
-                return True if status_ongoing == "Онгоинг" else False
+                    return False
+
             if content_type == "series":
                 try:
                     data_of_series = \
@@ -42,12 +43,12 @@ class AParser:
                     if int(data_of_series[2]) >= date_now.year and mouths[
                         data_of_series[1]] >= date_now.month and int(
                         data_of_series[0]) >= date_now.day:
-                        status_ongoing = "Онгоинг"
+                        return True
                 except:
-                    status_ongoing = "NO"
-                return True if status_ongoing == "Онгоинг" else False
+                    return False
 
     async def get_page(self, url,content_type):
+        print('-----new_parser.get_page()------')
         if await self.check(url=url,content_type=content_type):
             if content_type == "anime":
                 while True:
@@ -60,7 +61,7 @@ class AParser:
                         title_name = soup.find('div',class_='anime-title').next_element.next_element.text
                         episodes = soup.find_all('dd', class_='col-6 col-sm-8 mb-1')[1].text
                         self.dict_of_titles[content_type][title_name] = [url, episodes]
-                        print('-----new_parser.get_page()------')
+
                         print(self.dict_of_titles[content_type])
                         print('-----------')
                     return title_name, episodes,
@@ -71,42 +72,61 @@ class AParser:
                         soup = BeautifulSoup(html, 'lxml')
                         title_name = soup.find('h2').text
                         episodes = soup.find('div', class_ = "wrapper_movies_soon_episodes active").find_all('div',class_ = "active")[-1]
-                        episodes = episodes.next_element.text
-                        print(episodes)
+                        episodes = episodes.next_element.text.split()[0]
+
                         self.dict_of_titles[content_type][title_name] = [url, episodes]
                         print('-----new_parser.get_page()------')
-
+                        print(episodes)
                         print('-----------')
                     return title_name, episodes,
 
 
-    async def gather_data(self, lst_anime):
-
+    async def gather_data(self, lst_anime,lst_series):
+        for series in lst_series:
+            await self.get_page(series[1], content_type='series')
         for anime in lst_anime:
             await self.get_page(anime[1],content_type='anime')
 
-    async def find_new_series(self, lst_of_anime,content_type):#lst_of_anime[[anime_name1,href1,episodes1,flag1],....]
+    async def find_new_series(self, lst_of_anime,lst_of_series):#lst_of_anime[[anime_name1,href1,episodes1,flag1],....]
         print('-------find_new_series-----------')
         content_type = 'anime'
         for anime in lst_of_anime:
+            print(lst_of_anime)
             anime_name = anime[2]
-
+            now_episode = self.dict_of_titles[content_type][anime_name][1].split('/')[0]
+            print(now_episode)
+            print(anime[4])
             if not self.dict_of_titles[content_type].get(anime_name):  # Если аниме не прошло проверку self.check()
                 pass
 
             elif anime[4] == True:  # Меняем flag True на False после предыдущего запуска парсера
-                if int(anime[3].split('/')[1]) == int(self.dict_of_titles[content_type][anime_name][1].split('/')[
-                                                          0]):  # Если вышла последняя серия аниме и пользователям пришло оповещение
-                    await self.db.delete_anime(anime_name=anime_name)
-                else:
-                    await self.db.write_on_db(episodes=self.dict_of_titles[content_type][anime_name][1], anime_name=anime_name,
-                                              flag=False)
+                if not '?' in anime[3].split('/')[1] :
+                    if int(anime[3].split('/')[1]) == int(now_episode):  # Если вышла последняя серия аниме и пользователям пришло оповещение
+                        await self.db.delete_anime(anime_name=anime_name)
+                await self.db.write_on_db(episodes=self.dict_of_titles[content_type][anime_name][1], name=anime_name,
+                                              flag=False,content_type=content_type)
 
 
-            elif int(anime[3].split('/')[0]) < int(self.dict_of_titles[content_type][anime_name][1].split('/')[
-                                                       0]):  # Если количество серий , спаршеных с сайта больше количества серий,взятых с бд
-                await self.db.write_on_db(episodes=self.dict_of_titles[content_type][anime_name][1], anime_name=anime_name, flag=True)
+            elif int(anime[3].split('/')[0]) < int(now_episode):  # Если количество серий , спаршеных с сайта больше количества серий,взятых с бд
+                await self.db.write_on_db(episodes=self.dict_of_titles[content_type][anime_name][1], name=anime_name, flag=True,content_type=content_type)
                 print(f'{anime_name} flag = True')
+            else:
+                pass
+        for series in lst_of_series:
+            content_type = 'series'
+            series_name = series[2]
+            now_episode = series[3]
+            if not self.dict_of_titles[content_type].get(series_name):  # Если аниме не прошло проверку self.check()
+                pass
+
+            elif series[4] == True:  # Меняем flag True на False после предыдущего запуска парсера
+                await self.db.write_on_db(episodes=self.dict_of_titles[content_type][series_name][1], name=series_name,
+                                          flag=False,content_type=content_type)
+
+
+            elif int(series[3]) < int(self.dict_of_titles[content_type][series_name][1]):  # Если количество серий , спаршеных с сайта больше количества серий,взятых с бд
+                await self.db.write_on_db(episodes=self.dict_of_titles[content_type][series_name][1], name=series_name, flag=True,content_type=content_type)
+                print(f'{series_name} flag = True')
             else:
                 pass
 

@@ -5,5 +5,5 @@ __all__ = [
     'ongoing',
     'add_anime',
     'view_tracked',
-    'delete_anime',
+    'delete_title.py',
 ]

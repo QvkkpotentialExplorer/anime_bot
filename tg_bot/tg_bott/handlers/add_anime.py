@@ -6,8 +6,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 from parser.new_parser import AParser
-from tg_bot.tg_bott.db.bot_db import DataBase, func
-
+from tg_bot.tg_bott.db.bot_db import DataBase
 dict_of_users = {}
 
 db = DataBase()
@@ -31,7 +30,6 @@ async def add(message: types.Message, state: FSMContext):
     if message.text.startswith('https://animego.org'):
         content_type = 'anime'
         await state.update_data(href=message.text)
-        await func()
         user_data = await state.get_data()
         print(f'{message.chat.id}  :  {user_data["href"]}')
         async with aiohttp.ClientSession() as session:

@@ -1,3 +1,5 @@
+import asyncio
+
 import aiosqlite
 
 
@@ -64,8 +66,10 @@ class DataBase:
                                          params=(chat_id,))
             return user_id[0]
 
-    async def add_title(self, href: str, name: str, episodes: str,content_type : str):#content_type - категория , с которой производятся манпиуляции(anime,series)
-        res = await self.execute(sql=f"""SELECT id FROM {content_type} WHERE href = ? """, fetchone=True, params=(href,))
+    async def add_title(self, href: str, name: str, episodes: str,
+                        content_type: str):  # content_type - категория , с которой производятся манпиуляции(anime,series)
+        res = await self.execute(sql=f"""SELECT id FROM {content_type} WHERE href = ? """, fetchone=True,
+                                 params=(href,))
         if not res:
             anime_id = await self.execute(
                 sql=f"""INSERT INTO {content_type
@@ -76,13 +80,15 @@ class DataBase:
             )
             return anime_id[0]
         else:
-            anime_id = await self.execute(sql=f"""SELECT id FROM {content_type} WHERE href = ?;""", fetchone=True, params=(href,))
+            anime_id = await self.execute(sql=f"""SELECT id FROM {content_type} WHERE href = ?;""", fetchone=True,
+                                          params=(href,))
             return anime_id[0]
 
-    async def add_users_title(self, user_id, title_id,content_type):
-        check = await self.execute(sql=f"SELECT * FROM users_{content_type} WHERE user_id = ? and {content_type}_id = ?;",
-                                   fetchone=True,
-                                   params=(user_id, title_id,))
+    async def add_users_title(self, user_id, title_id, content_type):
+        check = await self.execute(
+            sql=f"SELECT * FROM users_{content_type} WHERE user_id = ? and {content_type}_id = ?;",
+            fetchone=True,
+            params=(user_id, title_id,))
         if not check:
             await self.execute(sql=f"""INSERT INTO users_{content_type}(user_id, {content_type}_id) VALUES(?, ?);""",
                                params=(user_id, title_id,),
@@ -91,7 +97,7 @@ class DataBase:
         else:
             return False
 
-    async def select_users_titles(self, chat_id:str,content_type):
+    async def select_users_titles(self, chat_id: str, content_type):
         print(type(chat_id))
         sql = """SELECT id FROM users where chat_id = ?"""
         print(await self.execute(sql=sql, fetchone=True, params=(chat_id,)))
@@ -102,73 +108,69 @@ class DataBase:
             print(content_type)
             user_id = await self.execute(sql=sql, fetchone=True, params=(chat_id,))
             print(user_id[0])
-            titles_id = await self.execute(sql=f"SELECT {content_type}_id FROM users_{content_type} WHERE user_id = ?", fetchall=True,
-                                          params=(user_id[0],))  # Достаем из таблички users_anime все anime_id
+            titles_id = await self.execute(sql=f"SELECT {content_type}_id FROM users_{content_type} WHERE user_id = ?",
+                                           fetchall=True,
+                                           params=(user_id[0],))  # Достаем из таблички users_anime все anime_id
             print(titles_id)
             if titles_id:
                 title_id = [id[0] for id in titles_id]
                 print(title_id)
                 animes = await self.execute(
-                    sql=f"""SELECT name, href, episodes FROM {content_type} WHERE id in ({'?,' * (len(title_id) - 1)}?)""",
+                    sql=f"""SELECT id,name, href, episodes FROM {content_type} WHERE id in ({'?,' * (len(title_id) - 1)}?)""",
                     fetchall=True,
-                    params=(tuple(title_id) ))# Достаем из таблички anime все аниме , конкретного пользователся
+                    params=(tuple(title_id)))  # Достаем из таблички anime все аниме , конкретного пользователся
                 return animes
             else:
                 return False
 
-    async def delete_users_anime(self, chat_id, anime_name):
-        user_id = await self.execute(sql="""SELECT id FROM users WHERE chat_id = ?;""", fetchone=True,
-                                     params=(chat_id,))
-        print(user_id)
-        anime_id = await self.execute(sql="""SELECT id FROM anime WHERE name = ?;""", fetchone=True,
-                                      params=(anime_name,))
-        await self.execute(sql="DELETE FROM users_anime where user_id = ? and anime_id = ?;",
-                           fetchone=True, params=(user_id[0], anime_id[0],), commit=True)
-        return anime_name
+    async def delete_users_title(self, chat_id,  title_id, content_type):
+        name = await self.execute(sql = f"SELECT name FROM anime WHERE id = ?",params=(title_id,),fetchone=True)
+        await self.execute(sql=f"DELETE FROM users_{content_type} where user_id = ? and {content_type}_id = ?;",
+                           fetchone=True, params=(chat_id,title_id), commit=True)
+        return name
 
-    async def select_anime(self):
-        animes = await self.execute(sql="""SELECT * FROM anime;""", fetchall=True)
+    async def select_title(self, content_type):
+        animes = await self.execute(sql=f"""SELECT * FROM {content_type};""", fetchall=True)
 
         # [id,href,anime_name,episodes,flag]
         return animes
 
-    async def write_on_db(self, anime_name, episodes, flag):
-        await self.execute(sql=""" UPDATE anime SET episodes = ?, flag = ?   WHERE name = ? """,
-                           params=(episodes, flag, anime_name,), commit=True)
+    async def write_on_db(self, name, episodes, flag, content_type):
+        await self.execute(sql=f""" UPDATE {content_type} SET episodes = ?, flag = ?   WHERE name = ? """,
+                           params=(episodes, flag, name,), commit=True)
         print('s')
 
     async def for_sounder(self):  # Формирует словарь sound для sounder
-        lst_of_users = await self.execute(sql=""" SELECT * FROM users  """, fetchall=True)
-        lst_of_animes = await self.execute(sql=""" SELECT * FROM anime WHERE flag = (?)""", params=(True,),
-                                           fetchall=True)
-        lst_of_users_anime = await self.execute(sql=""" SELECT * FROM users_anime""", fetchall=True)
-        if not lst_of_animes:
-            print('Новых серий не вышло')
-            sound = {}
-        else:
-            dict_of_users = {user[0]: user[1] for user in lst_of_users}
-            dict_of_animes = {anime[0]: {'href': anime[1], 'anime_name': anime[2], 'episodes': anime[3].split('/')[0]}
-                              for anime in
-                              lst_of_animes if anime[4] == True}  # Преобразуем список кортежей в словарь если
-            print(dict_of_animes)
-            dict_of_users_anime = {user[0]: user[1] for user in lst_of_users_anime}
-            sound = {}
-            print(dict_of_users_anime)
-            for key, value in dict_of_users_anime.items():
-                print(key, value)
-                sound[dict_of_users[value]] = dict_of_animes[key]
-        print(sound)
-        return sound  # {chat_id : {href: href,anime_name : anime_name,episodes : episodes}
+        sound = {'anime': [], 'series': []}
+        users_animes = await self.execute(
+            sql="""SELECT chat_id,name,episodes,href FROM anime JOIN users_anime,users ON anime.id = users_anime.anime_id  AND users.id == users_anime.user_id WHERE anime.flag = True ;""",
+            fetchall=True)
+        users_series = await self.execute(
+            sql="""SELECT chat_id,name,episodes,href FROM series JOIN users_series,users ON series.id = users_series.series_id  AND users.id == users_series.user_id WHERE series.flag = True ;""",
+            fetchall=True)
+        for sound_id in range(len(users_animes)):
+            now_title = users_animes[sound_id]
+            sound['anime'].append(
+                {"chat_id": now_title[0], "name": now_title[1], "episodes": now_title[2], "href": now_title[3]})
+        # {anime:[{href: href,name : anime_name,episodes : episodes},...]}
+
+        for sound_id in range(len(users_series)):
+            now_title = users_series[sound_id]
+            sound['series'].append(
+                {"chat_id": now_title[0], "name": now_title[1], "episodes": now_title[2], "href": now_title[3]})
+        # {series:[{href: href,name : anime_name,episodes : episodes},...]}
+
+        return sound
 
     async def delete_anime(self, anime_name):
         anime_id = await self.execute(sql=""" DELETE FROM anime WHERE anime_name = ?  RETURNING id """,
                                       params=(anime_name,), commit=True, fetchone=True)
         await self.execute(sql="DELETE FROM users_anime where anime_id = ?;",
                            fetchone=True, params=(anime_id[0],), commit=True, fetchall=True)
+    async def test(self):
 
+        print('--------------------------------------------------------------test_function in DB--------------------------------------------------------------')
 
 db = DataBase()
 
 
-async def func():
-    print(await db.select_anime())

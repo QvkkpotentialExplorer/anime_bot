@@ -6,7 +6,7 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 from parser.new_parser import AParser
-from tg_bot.tg_bott.db.bot_db import DataBase, func
+from tg_bot.tg_bott.db.bot_db import DataBase
 
 dict_of_users = {}
 
