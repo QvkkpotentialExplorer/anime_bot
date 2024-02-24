@@ -1,46 +1,24 @@
 from aiogram import types, Dispatcher
 
-from tg_bot.tg_bott.handlers.add_anime import add_anime
-from tg_bot.tg_bott.handlers.add_series import add_series
-from tg_bot.tg_bott.handlers.delete_title import  delete_title
-from tg_bot.tg_bott.handlers.view_tracked import view_tracked
-
-
-# from aiogram.dispatcher.filters import CommandStart
-
-# GetHref = GetHref()
-# GetCallback = GetCallback()
+from aiogram.dispatcher.filters import CommandStart
 
 
 async def bot_start(message: types.Message):
     buttons = [
-        types.InlineKeyboardButton(text="Посмотреть список отслеживаемых онгоингов", callback_data="view_tracked"),
-        types.InlineKeyboardButton(text="Добавить аниме в отслеживаемое", callback_data="add_anime"),
-        types.InlineKeyboardButton(text="Добавить сериал в отслеживаемое", callback_data="add_series"),
-        types.InlineKeyboardButton(text="Удалить аниме или сериал из отслеживаемого", callback_data="delete_title")
+        types.KeyboardButton(text="Отслеживать аниме"),
+        types.KeyboardButton(text="Отслеживать сериал"),
+        types.KeyboardButton(text="Что я отслеживаю?"),
+        types.KeyboardButton(text="Перестать отслеживать")
     ]
-    kbd = types.InlineKeyboardMarkup(row_width=1)
+    kbd = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     kbd.add(*buttons)
     await message.answer(
-        f'Привет друг!\nЯ - аниме-бот , который поможет тебе не забыть о том , что вышла новая серия твоего любимого тайтла:)')
-    await message.answer(f'Ты можешь :', reply_markup=kbd)
-
-
-async def bot_callback_handlers(call: types.CallbackQuery, state):
-    if call.data == "add_anime":
-        await add_anime(message=call.message, state=state)
-
-    elif call.data == "view_tracked":
-        await view_tracked(message=call.message)
-    elif call.data == "delete_title":
-        await delete_title(message=call.message, state=state)
-    elif call.data == "add_series":
-        await add_series(message = call.message,state = state)
-    await call.answer()
-
-
+        text=f'Привет друг!\n'
+             f'Я - Notific, я помогу тебе не забыть о том, что вышла новая серия твоего любимого тайтла:)\n'
+             f'Ты можешь:',
+        reply_markup=kbd
+    )
 
 
 def register_start(dp: Dispatcher):
-    dp.register_message_handler(bot_start, commands=['start'], state='*')
-    dp.register_callback_query_handler(bot_callback_handlers, state='*', )
+    dp.register_message_handler(bot_start, CommandStart())

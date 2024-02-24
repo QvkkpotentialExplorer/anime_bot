@@ -124,10 +124,11 @@ class DataBase:
                 return False
 
     async def delete_users_title(self, chat_id,  title_id, content_type):
-        name = await self.execute(sql = f"SELECT name FROM anime WHERE id = ?",params=(title_id,),fetchone=True)
+        info = await self.execute(sql = f"SELECT name,users.id FROM {content_type} JOIN users WHERE {content_type}.id = ? AND users.chat_id = ?",params=(title_id,chat_id,),fetchone=True)
         await self.execute(sql=f"DELETE FROM users_{content_type} where user_id = ? and {content_type}_id = ?;",
-                           fetchone=True, params=(chat_id,title_id), commit=True)
-        return name
+                           fetchone=True, params=(info[1],title_id), commit=True)
+        print(info)
+        return info[0]
 
     async def select_title(self, content_type):
         animes = await self.execute(sql=f"""SELECT * FROM {content_type};""", fetchall=True)

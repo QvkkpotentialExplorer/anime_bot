@@ -1,12 +1,13 @@
 import aiohttp
 from aiogram import types, Dispatcher
 from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import State, StatesGroup
-# from aiogram.dispatcher.filters import CommandStart
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 from parser.new_parser import AParser
 from tg_bot.tg_bott.db.bot_db import DataBase
+
 dict_of_users = {}
 
 db = DataBase()
@@ -18,11 +19,7 @@ class GetAnimeHref(StatesGroup):
 
 
 async def add_anime(message: types.Message, state: FSMContext):
-    await message.answer(
-        f'Инструкция : \n'
-        f'Чтобы добавить аниме в отслеживаемые, тебе нужно зайти на этот сайтик https://animego.org/ и найти нужную анимку\n'
-        f'Далее скидываешь ссылку мне :)')
-    await message.answer(f'Скидывай ссылку')
+    await message.answer(f'Пришли мне ссылку на нужное аниме с <a href="https://animego.org/">этого сайта</a>')
     await state.set_state(GetAnimeHref.waiting_for_href.state)
 
 
@@ -31,13 +28,18 @@ async def add(message: types.Message, state: FSMContext):
         content_type = 'anime'
         await state.update_data(href=message.text)
         user_data = await state.get_data()
-        print(f'{message.chat.id}  :  {user_data["href"]}')
+        print(f'{message.chat.id}::::{user_data["href"]}')
         async with aiohttp.ClientSession() as session:
             parser = AParser(session=session)
-            if await parser.check(user_data["href"],content_type='anime'):
-                data_of_anime = await parser.get_page(url=message.text,content_type='anime')
-                check = await db.add_users_title(await db.add_user(chat_id=message.chat.id),
-                                                 await db.add_title(href=message.text, name= data_of_anime[0],episodes=data_of_anime[1],content_type= 'anime'),content_type=content_type)
+            if await parser.check(user_data["href"], content_type='anime'):
+                data_of_anime = await parser.get_page(url=message.text, content_type='anime')
+                check = await db.add_users_title(
+                    await db.add_user(chat_id=message.chat.id),
+                    await db.add_title(href=message.text,
+                                       name=data_of_anime[0],
+                                       episodes=data_of_anime[1],
+                                       content_type='anime'),
+                    content_type=content_type)
                 if check:
                     await message.reply("Аниме добавлено в отслеживаемые")
                 else:
@@ -52,5 +54,5 @@ async def add(message: types.Message, state: FSMContext):
 
 
 def register_add_anime(dp: Dispatcher):
-    dp.register_message_handler(callback=add_anime, commands=['add_anime'], state="*")
+    dp.register_message_handler(add_anime, Text("Отслеживать аниме", ignore_case=True), state="*")
     dp.register_message_handler(callback=add, state=GetAnimeHref.waiting_for_href)

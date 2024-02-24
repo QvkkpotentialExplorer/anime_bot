@@ -31,15 +31,14 @@ def register_filters(dp):
     pass
 
 
-def register_hendler(dp):
-    register_add_series(dp)
-    register_delete_title(dp)
+def register_handler(dp):
     register_start(dp)
-
-    register_view_tracked(dp)
     register_add_anime(dp)
-
+    register_add_series(dp)
+    register_view_tracked(dp)
+    register_delete_title(dp)
     register_help_commands(dp)
+
     # register_echo(dp)
     # register_ongoing(dp)
 
@@ -50,13 +49,17 @@ async def sounder(bot: Bot):
         parser = AParser(session=session)
         lst_of_anime = await db.select_title(content_type='anime')
         lst_of_series = await db.select_title(content_type='series')
-        await parser.gather_data(lst_anime=lst_of_anime,lst_series=lst_of_series)  # Собираем новые данные об аниме
-        await parser.find_new_series(lst_of_anime=lst_of_anime,lst_of_series=lst_of_series)  # Ищет новые серии и сипользует функц db.wrote()
+        await parser.gather_data(lst_anime=lst_of_anime, lst_series=lst_of_series)  # Собираем новые данные об аниме
+        await parser.find_new_series(lst_of_anime=lst_of_anime,
+                                     lst_of_series=lst_of_series)  # Ищет новые серии и сипользует функц db.wrote()
     users_for_message = await db.for_sounder()
 
     for content_type in users_for_message:
         for title in users_for_message[content_type]:
-            await bot.send_message(chat_id=title['chat_id'], text=f'{title["name"]} вышла новая серия {title["episodes"]} \n {title["href"]}')
+            await bot.send_message(chat_id=title['chat_id'],
+                                   text=f'{title["name"]} вышла новая серия {title["episodes"]} \n {title["href"]}')
+
+
 async def main():
     await db.create_table()
 
@@ -69,19 +72,17 @@ async def main():
     dp = Dispatcher(bot=bot, storage=storage)
     bot['config'] = config
 
-
     scheduler = AsyncIOScheduler()
 
     register_middleware(dp, scheduler)
     register_filters(dp)
-    register_hendler(dp)
+    register_handler(dp)
 
-    scheduler.add_job(sounder, 'interval', seconds = 30, args=(bot,))
+    scheduler.add_job(sounder, 'interval', seconds=30, args=(bot,))
 
     try:
         scheduler.start()
         await dp.start_polling()
-
 
     finally:
         await dp.storage.close()
